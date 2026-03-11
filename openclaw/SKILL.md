@@ -3,6 +3,7 @@ name: rtk-rewrite
 version: "0.15.3"
 author: "luw2007"
 repository: "https://github.com/rtk-ai/rtk"
+license: MIT
 published: true
 tags: rtk, openclaw, plugin, token-saving, rewrite
 description: >
