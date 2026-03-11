@@ -6,7 +6,7 @@ This is the OpenClaw equivalent of the Claude Code hooks in `hooks/rtk-rewrite.s
 
 ## How it works
 
-The plugin registers a `before_tool_call` hook that intercepts `exec` tool calls. When the agent runs a command like `git status`, the plugin rewrites it to `rtk git status` before execution. The compressed output enters the agent's context window, saving tokens.
+The plugin registers a `before_tool_call` hook that intercepts `exec` tool calls. It delegates rewriting to `rtk rewrite`, which is the single source of truth used by Claude Code hooks too. When the agent runs `git status`, the plugin asks RTK for a rewrite and executes the rewritten command if available.
 
 ## Installation
 
@@ -51,55 +51,84 @@ In `openclaw.json`:
       "rtk-rewrite": {
         enabled: true,
         config: {
-          enabled: true,    // Toggle rewriting on/off
-          verbose: false     // Log rewrites to console
-        }
-      }
-    }
-  }
+          enabled: true, // Toggle rewriting on/off
+          verbose: false, // Log rewrites to console
+          audit: false, // Write hook-style audit logs to hook-audit.log
+          auditDir: "~/.local/share/rtk", // Optional custom audit directory
+        },
+      },
+    },
+  },
 }
 ```
 
 ## What gets rewritten
 
-| Command | Rewritten to |
-|---------|-------------|
-| `git status/diff/log/...` | `rtk git status/diff/log/...` |
-| `gh pr/issue/run` | `rtk gh pr/issue/run` |
-| `grep/rg` | `rtk grep` |
-| `find` | `rtk find` |
-| `ls` | `rtk ls` |
-| `tsc/eslint/prettier` | `rtk tsc/lint/prettier` |
-| `vitest/pytest/go test` | `rtk vitest/pytest/go test` |
-| `docker ps/images/logs` | `rtk docker ps/images/logs` |
-| `kubectl get/logs` | `rtk kubectl get/logs` |
+Anything supported by `rtk rewrite` in your installed RTK version. This keeps OpenClaw and Claude Code behavior aligned automatically.
 
-## What's NOT rewritten (guards)
+Quick check:
 
-- Commands already using `rtk`
-- Piped commands (`|`, `&&`, `;`)
-- Heredocs (`<<`)
-- Commands not in the rewrite table (e.g., `cat`, `echo`, `curl`)
+```bash
+rtk rewrite "git status"
+rtk rewrite "cargo test"
+```
+
+## What's NOT rewritten
+
+Anything `rtk rewrite` decides not to rewrite (already-rtk commands, unsupported commands, complex shells like heredocs/pipelines, and commands excluded by RTK config).
+
+## Troubleshooting logs
+
+Enable structured audit logs for issue analysis:
+
+```json5
+{
+  plugins: {
+    entries: {
+      "rtk-rewrite": {
+        enabled: true,
+        config: {
+          audit: true,
+          // Optional. If omitted, uses RTK_AUDIT_DIR or ~/.local/share/rtk
+          auditDir: "~/.local/share/rtk",
+        },
+      },
+    },
+  },
+}
+```
+
+Then inspect summary with:
+
+```bash
+rtk hook-audit --since 7 -v
+```
+
+Audit format is compatible with Claude Code hook logs:
+
+```text
+timestamp | action | original_cmd | rewritten_cmd
+```
 
 ## Measured savings
 
-| Command | Token savings |
-|---------|--------------|
-| `git log --stat` | 87% |
-| `ls -la` | 78% |
-| `git status` | 66% |
-| `grep` (single file) | 52% |
-| `find -name` | 48% |
+| Command              | Token savings |
+| -------------------- | ------------- |
+| `git log --stat`     | 87%           |
+| `ls -la`             | 78%           |
+| `git status`         | 66%           |
+| `grep` (single file) | 52%           |
+| `find -name`         | 48%           |
 
 ## How it compares to Claude Code hooks
 
-| Feature | CC Hook (`hooks/rtk-rewrite.sh`) | OpenClaw Plugin |
-|---------|----------------------------------|-----------------|
-| Hook type | Shell script (PreToolUse) | TypeScript (before_tool_call) |
-| Rewrite approach | Bash regex | JS regex |
-| Installation | `rtk init --global` | Copy to extensions dir |
-| Configuration | `.claude/settings.json` | `openclaw.json` |
-| Scope | Claude Code sessions | All OpenClaw agents |
+| Feature          | CC Hook (`hooks/rtk-rewrite.sh`) | OpenClaw Plugin               |
+| ---------------- | -------------------------------- | ----------------------------- |
+| Hook type        | Shell script (PreToolUse)        | TypeScript (before_tool_call) |
+| Rewrite approach | `rtk rewrite` delegation         | `rtk rewrite` delegation      |
+| Installation     | `rtk init --global`              | Copy to extensions dir        |
+| Configuration    | `.claude/settings.json`          | `openclaw.json`               |
+| Scope            | Claude Code sessions             | All OpenClaw agents           |
 
 ## License
 

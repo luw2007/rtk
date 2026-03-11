@@ -1,7 +1,7 @@
 {
   "id": "rtk-rewrite",
   "name": "RTK Token Optimizer",
-  "version": "0.15.1",
+  "version": "0.15.2",
   "description": "Transparently rewrites shell commands to their RTK equivalents for 60-90% LLM token savings",
   "homepage": "https://github.com/aimagist/openrtklaw",
   "license": "MIT",
@@ -18,11 +18,22 @@
         "type": "boolean",
         "default": false,
         "description": "Log rewrite decisions to console for debugging"
+      },
+      "audit": {
+        "type": "boolean",
+        "default": false,
+        "description": "Write hook-style audit logs (hook-audit.log) for troubleshooting"
+      },
+      "auditDir": {
+        "type": "string",
+        "description": "Optional directory for audit log output; defaults to RTK_AUDIT_DIR or ~/.local/share/rtk"
       }
     }
   },
   "uiHints": {
     "enabled": { "label": "Enable RTK rewriting" },
-    "verbose": { "label": "Verbose logging" }
+    "verbose": { "label": "Verbose logging" },
+    "audit": { "label": "Write audit log" },
+    "auditDir": { "label": "Audit log directory" }
   }
 }
