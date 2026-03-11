@@ -1,8 +1,9 @@
 ---
 name: rtk-rewrite
-version: "0.15.2"
+version: "0.15.3"
 author: "luw2007"
-published: false
+repository: "https://github.com/rtk-ai/rtk"
+published: true
 tags: rtk, openclaw, plugin, token-saving, rewrite
 description: >
   RTK rewrite plugin for OpenClaw. Intercepts exec tool calls and delegates
